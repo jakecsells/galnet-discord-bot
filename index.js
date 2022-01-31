@@ -19,7 +19,7 @@ client.on("ready", () => {
 });
 
 // Every 15th and 45th minute "15,45 * * * *"
-let get_news = new cron.CronJob("* * * * *", async () => {
+let get_news = new cron.CronJob("15,45 * * * *", async () => {
   https.get("https://cms.zaonce.net/en-GB/jsonapi/node/galnet_article?&sort=-published_at&page[offset]=0&page[limit]=1", (response) => {
     let data = "";
     response.setEncoding("utf8");
@@ -67,18 +67,46 @@ client.on("messageCreate", (message) => {
   if (message.mentions.has(client.user.id)) {
     // Sets the channel to update
     if (message.content.includes("setchannel")) {
-      message.channel.send("Will update channel with Galnet articles.");
+      message.channel.send("Will update this channel with Galnet articles.");
       fs.readFile('./servers.json', 'utf8', (err, data) => {
         if (err) {
           console.log(`Error reading file from disk: ${err}`);
         } else {
           // parse JSON string to JSON object
           const servers = JSON.parse(data);
-
+          // Does the server already exist?
+          servers.forEach((server) => {
+            if (server.guild_id == message.guild.id) {
+              delete server
+            }
+          });
           // add a new record
           servers.push({
             guild_id: message.guild.id,
             channel_id: message.channel.id
+          });
+          // write new data back to the file
+          fs.writeFile('./servers.json', JSON.stringify(servers, null, 4), (err) => {
+            if (err) {
+              console.log(`Error writing file: ${err}`);
+            }
+          });
+        }
+      });
+    }
+    if (message.content.includes("stop")) {
+      message.channel.send("Removed from list to update.");
+      fs.readFile('./servers.json', 'utf8', (err, data) => {
+        if (err) {
+          console.log(`Error reading file from disk: ${err}`);
+        } else {
+          // parse JSON string to JSON object
+          const servers = JSON.parse(data);
+          // Delete server
+          servers.forEach((server) => {
+            if (server.guild_id == message.guild.id) {
+              delete server
+            }
           });
           // write new data back to the file
           fs.writeFile('./servers.json', JSON.stringify(servers, null, 4), (err) => {
