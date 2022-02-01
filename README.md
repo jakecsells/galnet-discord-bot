@@ -13,12 +13,6 @@ Discord bot to post Galnet News from Elite: Dangerous. This bot will check Galne
 
 1. Mention the bot with the stop command: `@Galnet News stop`
 
-# Requirements
-* discord.js
-* better-sqlite3
-* cron
-* https
-
 # Host Your Own Bot
 The bot is running on nodejs and discordjs. You can host this on any computer and it's very lightweight.
 
