@@ -18,6 +18,16 @@ Discord bot to post Galnet News from Elite: Dangerous. This bot will check Galne
 * https
 
 # Host Your Own Bot
+The bot is running on nodejs and discordjs. You can host this on any computer and it's very lightweight.
+
+## Requirements
+* discord.js
+* better-sqlite3
+* cron
+* https
+
+## Setup
+
 1. Pull the repo `git clone https://github.com/jakecsells/galnet-discord-bot.git`
 2. In the repo directory, run `npm update`
 3. Get your discord bot token https://discordapp.com/developers/applications/
