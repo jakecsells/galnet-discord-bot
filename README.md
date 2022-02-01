@@ -1,8 +1,13 @@
 # Galnet Discord Bot
-Discord bot to post Galnet News from Elite: Dangerous
+Discord bot to post Galnet News from Elite: Dangerous. This bot will check Galnet twice an hour for a new article and post to any subscribed Discord servers.
+
+1. Invite the Bot to your Server: [Link](https://discord.com/oauth2/authorize?client_id=937466947975651378&permissions=445440&scope=bot)
+2. Give the bot the necessary permissions to post
+3. Mention the bot in the channel you want it to post to: `@Galnet News setchannel`
 
 # Requirements
 * discord.js
+* better-sqlite3
 * cron
 * https
 

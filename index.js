@@ -6,9 +6,14 @@ const client = new Client({
 });
 
 // Other setup
-const fs = require("fs")
-const https = require("https")
-const cron = require("cron")
+const fs = require("fs");
+const https = require("https");
+const cron = require("cron");
+const Database = require('better-sqlite3');
+
+// Create/Connect DB
+const db = new Database('galnet-discord-bot.db', { verbose: console.log });
+db.prepare("CREATE TABLE IF NOT EXISTS servers('guild_id' varchar PRIMARY KEY, 'channel_id' varchar, 'language' varchar);").run();
 
 // Variables
 var latest_sync = Date.now()
@@ -31,27 +36,13 @@ let get_news = new cron.CronJob("15,45 * * * *", async () => {
       console.log("Latest Sync:      " + latest_sync);
       console.log("Latest Published: " + Date.parse(article.data[0].attributes.published_at))
       if (Date.parse(article.data[0].attributes.published_at) >= latest_sync) {
-        console.log("Updating all servers with new article.")
         var title = "__**" + article.data[0].attributes.title + "**__\n";
         var date = "_" + article.data[0].attributes.field_galnet_date + "_\n";
         var link = "https://community.elitedangerous.com/galnet/uid/" + article.data[0].attributes.field_galnet_guid + "\n";
         var body = ">>> " + article.data[0].attributes.body.value;
         body = body.replace(/(\*|_|`|~|\\)/g, '\\$1');
         var message = title.concat(date, link, body);
-        // Read the server list and send out article
-        fs.readFile('./servers.json', 'utf8', (err, data) => {
-          if (err) {
-            console.log(`Error reading file from disk: ${err}`);
-          } else {
-            // parse JSON string to JSON object
-            const servers = JSON.parse(data);
-            servers.forEach((server) => {
-              console.log("Updating channel: " + server.channel_id)
-              let channel = client.channels.cache.get(server.channel_id);
-              channel.send(message);
-            });
-          }
-        });
+        post(message)
       }
       latest_sync = Date.now()
     });
@@ -60,6 +51,23 @@ let get_news = new cron.CronJob("15,45 * * * *", async () => {
   });
 });
 
+// Post to servers
+function post(content) {
+  console.log("Updating all servers with new article.")
+  console.log("New article to post: " + content);
+  var servers = db.prepare("SELECT * FROM servers;").all();
+  servers.forEach((server) => {
+    let channel = client.channels.cache.get(server.channel_id);
+    // If Channel exists, post
+    if (channel) {
+      channel.send(content);
+      console.log("Posting to channel: " + server.channel_id)
+    }
+    else {
+      console.log("Failed getting channel: " + server.channel_id);
+    }
+  });
+};
 
 // Listening to commands
 client.on("messageCreate", (message) => {
@@ -68,54 +76,12 @@ client.on("messageCreate", (message) => {
     // Sets the channel to update
     if (message.content.includes("setchannel")) {
       message.channel.send("Will update this channel with Galnet articles.");
-      fs.readFile('./servers.json', 'utf8', (err, data) => {
-        if (err) {
-          console.log(`Error reading file from disk: ${err}`);
-        } else {
-          // parse JSON string to JSON object
-          const servers = JSON.parse(data);
-          // Does the server already exist?
-          servers.forEach((server) => {
-            if (server.guild_id == message.guild.id) {
-              delete server
-            }
-          });
-          // add a new record
-          servers.push({
-            guild_id: message.guild.id,
-            channel_id: message.channel.id
-          });
-          // write new data back to the file
-          fs.writeFile('./servers.json', JSON.stringify(servers, null, 4), (err) => {
-            if (err) {
-              console.log(`Error writing file: ${err}`);
-            }
-          });
-        }
-      });
+      db.prepare("INSERT OR REPLACE INTO servers (guild_id, channel_id, language) VALUES (?, ?, 'en-GB');").run(message.guild.id, message.channel.id);
     }
     if (message.content.includes("stop")) {
       message.channel.send("Removed from list to update.");
-      fs.readFile('./servers.json', 'utf8', (err, data) => {
-        if (err) {
-          console.log(`Error reading file from disk: ${err}`);
-        } else {
-          // parse JSON string to JSON object
-          const servers = JSON.parse(data);
-          // Delete server
-          servers.forEach((server) => {
-            if (server.guild_id == message.guild.id) {
-              delete server
-            }
-          });
-          // write new data back to the file
-          fs.writeFile('./servers.json', JSON.stringify(servers, null, 4), (err) => {
-            if (err) {
-              console.log(`Error writing file: ${err}`);
-            }
-          });
-        }
-      });
+      console.log("Removing guild from servers list: " + message.guild.id);
+      db.prepare("DELETE FROM servers WHERE guild_id = ?;").run(message.guild.id);
     }
   }
 });
